@@ -93,7 +93,7 @@ const forgotPassword = async (req, res) => {
     const forgotPassword = {
       email,
       otp,
-      expireAt: Date.now() + timeExpire * 60,
+      expireAt: Date.now() + timeExpire * 60 * 1000,
     };
 
     const objForgotPassword = new ForgotPassword(forgotPassword);
@@ -194,6 +194,18 @@ const getProfile = async (req, res) => {
   }
 };
 
+const index = async (req, res) => {
+  try {
+    const users = await Users.find({ deleted: false }).select("-password");
+    res.json({
+      status: 200,
+      data: users,
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -201,4 +213,5 @@ module.exports = {
   otp,
   resetPassword,
   getProfile,
+  index,
 };

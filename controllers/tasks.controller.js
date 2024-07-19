@@ -4,7 +4,10 @@ const Tasks = require("../models/tasks.model");
 
 const index = async (req, res) => {
   try {
-    let find = { deleted: false };
+    let find = {
+      deleted: false,
+      $or: [{ createdBy: req.user.id }, { listUser: req.user.id }],
+    };
     let sort = {};
 
     // obj pagination
@@ -135,13 +138,24 @@ const changeMulti = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const task = new Tasks(req.body);
-    const data = await task.save();
-    res.json({
-      status: 200,
-      message: "Created a new task successfully",
-      data: data,
+    req.body.createdBy = req.user.id;
+    const taskParent = await Tasks.findOne({
+      _id: req.body.taskParentId,
     });
+    if (taskParent) {
+      const task = new Tasks(req.body);
+      const data = await task.save();
+      res.json({
+        status: 200,
+        message: "Created a new task successfully",
+        data: data,
+      });
+    } else {
+      res.json({
+        status: 200,
+        message: "Task Parent does not exist",
+      });
+    }
   } catch (error) {
     console.log(error);
   }
