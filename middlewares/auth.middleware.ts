@@ -1,12 +1,17 @@
+import { NextFunction, Request, Response } from "express";
 import { Users } from "../models/users.model";
 
-export const requireAuth = async (req, res, next) => {
+export const requireAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     if (req.headers.authorization) {
       const token = req.headers.authorization.split(" ")[1];
       const user = await Users.findOne({ token: token });
       if (user) {
-        req.user = user;
+        req["user"] = user;
         next();
       } else {
         res.json({
@@ -24,7 +29,7 @@ export const requireAuth = async (req, res, next) => {
     console.log(error);
     res.json({
       status: 404,
-      message: "You are unauthorized to access this page",
+      message: "Token does not exist",
     });
   }
 };

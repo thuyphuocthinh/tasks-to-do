@@ -1,12 +1,14 @@
-import md5 from "md5";
+import { Request, Response } from "express";
+import * as md5 from "md5";
 import { Users } from "../models/users.model";
-const ForgotPassword = require("../models/forgotPassword.model");
-const generate = require("../helpers/generate.helper");
-const sendMail = require("../helpers/sendMail.helper");
+import { generateRandomString } from "../helpers/generate.helper";
+import { sendMail } from "../helpers/sendMail.helper";
+import { ForgotPassword } from "../models/forgotPassword.model";
 
-export const register = async (req, res) => {
+export const register = async (req: Request, res: Response) => {
   try {
     req.body.password = md5(req.body.password);
+    req.body.token = generateRandomString(30);
     const existEmail = await Users.findOne({
       email: req.body.email,
       deleted: false,
@@ -39,13 +41,14 @@ export const register = async (req, res) => {
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     const emailExist = await Users.findOne({
       email: email,
       deleted: false,
     });
+
     if (!emailExist) {
       res.json({
         status: 400,
@@ -73,7 +76,7 @@ export const login = async (req, res) => {
   }
 };
 
-export const forgotPassword = async (req, res) => {
+export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     const emailExist = await Users.findOne({
@@ -88,7 +91,7 @@ export const forgotPassword = async (req, res) => {
       return;
     }
 
-    const otp = generate.generateRandomString(5);
+    const otp = generateRandomString(5);
     const timeExpire = 5;
     const forgotPassword = {
       email,
@@ -104,7 +107,7 @@ export const forgotPassword = async (req, res) => {
         <p>This is your OTP: ${otp}</p>
     `;
 
-    sendMail.sendMail(email, subject, html);
+    sendMail(email, subject, html);
 
     res.json({
       status: 200,
@@ -115,7 +118,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-export const otp = async (req, res) => {
+export const otp = async (req: Request, res: Response) => {
   try {
     const { email, otp } = req.body;
     const otpExist = await ForgotPassword.findOne({ otp: otp, email: email });
@@ -140,7 +143,7 @@ export const otp = async (req, res) => {
   }
 };
 
-export const resetPassword = async (req, res) => {
+export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { password, confirmPassword, token } = req.body;
     const user = await Users.findOne({ token: token });
@@ -179,7 +182,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const getProfile = async (req, res) => {
+export const getProfile = async (req: Request, res: Response) => {
   try {
     const token = req.cookies.token;
     const user = await Users.findOne({ token: token, deleted: false }).select(
@@ -194,7 +197,7 @@ export const getProfile = async (req, res) => {
   }
 };
 
-export const index = async (req, res) => {
+export const index = async (req: Request, res: Response) => {
   try {
     const users = await Users.find({ deleted: false }).select("-password");
     res.json({

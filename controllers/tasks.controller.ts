@@ -1,44 +1,56 @@
-const { pagination } = require("../helpers/pagination.helper");
-const { search } = require("../helpers/search.helper");
 import Tasks from "../models/tasks.model";
+import { Users } from "../models/users.model";
 import { Request, Response } from "express";
+import { pagination } from "../helpers/pagination.helper";
+import { search } from "../helpers/search.helper";
+
 interface Find {
   deleted: Boolean;
-  status?: String;
-  title?: String;
+  status?: string;
+  title?: RegExp;
   $or?: any[];
 }
 
-export const index = async (req, res) => {
+export const index = async (req: Request, res: Response) => {
   try {
     let find: Find = {
       deleted: false,
-      $or: [{ createdBy: req.user.id }, { listUser: req.user.id }],
+      // $or: [{ createdBy: req.user.id }, { listUser: req.user.id }],
     };
     let sort = {};
 
     // obj pagination
-    let objectPagination = {
+    let objectPagination: {
+      limitItems: number;
+      currentPage: number;
+      skip?: number;
+      totalPage?: number;
+    } = {
       skip: 0,
       currentPage: 0,
       limitItems: 2,
+      totalPage: 0,
     };
-    const totalItems = await Tasks.countDocuments(find);
+    const totalItems: number = await Tasks.countDocuments(find);
     objectPagination = pagination(req, objectPagination, totalItems);
 
     // filter
     if (req.query.status) {
-      find.status = req.query.status;
+      find.status = req.query.status.toString();
     }
 
     // sort
     if (req.query.sortKey && req.query.sortValue) {
-      sort[req.query.sortKey] = req.query.sortValue;
+      const sortKey = req.query.sortKey.toString();
+      sort[sortKey] = req.query.sortValue;
     }
 
     // search
     if (req.query.keyword) {
-      const objSearch = search(req);
+      const objSearch: {
+        keyword: string;
+        regex?: RegExp;
+      } = search(req);
       find.title = objSearch.regex;
     }
 
@@ -94,9 +106,15 @@ export const changeStatus = async (req: Request, res: Response) => {
 
 export const changeMulti = async (req: Request, res: Response) => {
   try {
-    const { key, value, ids } = req.body;
+    const key: string = req.body;
+    const value: string = req.body;
+    const ids: string[] = req.body;
+    enum Key {
+      STATUS = "status",
+      DELETE = "delete",
+    }
     switch (key) {
-      case "status": {
+      case Key.STATUS: {
         await Tasks.updateMany(
           { _id: { $in: ids } },
           {
@@ -110,7 +128,7 @@ export const changeMulti = async (req: Request, res: Response) => {
         break;
       }
 
-      case "delete": {
+      case Key.DELETE: {
         await Tasks.updateMany(
           {
             _id: { $in: ids },
@@ -140,9 +158,11 @@ export const changeMulti = async (req: Request, res: Response) => {
   }
 };
 
-export const create = async (req, res) => {
+export const create = async (req: Request, res: Response) => {
   try {
-    req.body.createdBy = req.user.id;
+    const token: string = req.cookies.token;
+    const user = await Users.findOne({ token: token });
+    req.body.createdBy = user.id;
     const taskParent = await Tasks.findOne({
       _id: req.body.taskParentId,
     });
